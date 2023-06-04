@@ -6,7 +6,6 @@ import csv
 
 class FaceMesh():
     def __init__(self, db=None):
-        self.coordinates = []
         self.fileIndex = 0
         self.isNpArray = False
 
@@ -34,7 +33,9 @@ class FaceMesh():
                 z = landmark.z
                 lm_coord.append([x,y])
 
-        return lm_coord
+    @staticmethod
+    def ExtractLandmarksWithSplit():
+        pass
 
     @staticmethod
     def ExtractEyeLandmarks(face_mesh, is3d):
@@ -61,10 +62,10 @@ class FaceMesh():
     def CalculateEAR(landmarks):
         pass
 
-
-    def ExtractFaceMesh(self, file, extractor):
+    def ExtractFaceMesh(self, file, extractor, num_splits):
         mp_face_mesh = mp.solutions.face_mesh
         face_mesh = mp_face_mesh.FaceMesh()
+        coordinates = []
 
         cap = cv2.VideoCapture(file)
 
@@ -84,16 +85,26 @@ class FaceMesh():
             result = face_mesh.process(rgb_image)
 
             if result.multi_face_landmarks:
-               self.coordinates.append(extractor(result))
+               coordinates.append(extractor(result))
                 
 
-            cv2.imshow("Image", image)
+            # cv2.imshow("Image", image)
             if cv2.waitKey(25) & 0xFF == ord('q'):
-                self.coordinates = []
+                coordinates = []
                 break
 
+
+        num_frames = len(coordinates)
+        split_size = round(num_frames / num_splits)
+        split_list = []
+
+        for i in range(0, num_frames, split_size):
+            split_list.append(coordinates[i:i+split_size])
+
         cap.release()
-        self.SaveArray()
+
+        for i, split in enumerate(split_list):
+            self.SaveArray(coordinates, f'split{i}')
     
         self.fileIndex += 1
         cv2.destroyAllWindows()
@@ -144,32 +155,34 @@ class FaceMesh():
             cv2.imshow("Image", image)
             cv2.waitKey(1)
 
-    def SaveArray(self, file_name=''):
-        f = f'./drowsy/{self.fileIndex}.npy'
-        features = np.array(self.coordinates)
+    def SaveArray(self, coordinates, file_name=''):
+        f = f'./alert/{self.fileIndex}{file_name}.npy'
+        features = np.array(coordinates)
         np.save(f, features)
-        self.coordinates = []
 
 if __name__ == '__main__':
-    annot = '10'
+    annot = '0'
     fold_list = ['Fold1_part1', 'Fold1_part2', 'Fold2_part1', 'Fold2_part2', 'Fold3_part1', 'Fold3_part2', 'Fold4_part1', 'Fold4_part2', 'Fold5_part1', 'Fold5_part2']
     extractor = FaceMesh()
 
     # Camera Test
-    extractor.FaceMeshTest()
+    # extractor.FaceMeshTest()
 
-    # for fold in fold_list:
-    #     f = f"./UTA-RLDD/{fold}/"
-    #     folders = os.listdir(f)
+    for fold in fold_list:
+        f = f"/home/eyd/Documents/Coding/_DATASETS/UTA-RLDD/{fold}/"
+        folders = os.listdir(f)
 
-    #     for folder in folders:
-    #         f2 = f'{f}{folder}'
-    #         files = os.listdir(f2)
+        for folder in folders:
+            f2 = f'{f}{folder}'
+            files = os.listdir(f2)
 
-    #         for fil in files:
-    #             file_name, file_ext = os.path.splitext(fil)
+            for fil in files:
+                file_name, file_ext = os.path.splitext(fil)
 
-    #             if file_name == annot:
-    #                 inner = f'{f2}/{annot}{file_ext}'
-    #                 print(inner)
-    #                 extractor.ExtractFaceMesh(f'{inner}')
+                if file_name == annot:
+                    inner = f'{f2}/{annot}{file_ext}'
+                    print(inner)
+                    try:
+                        extractor.ExtractFaceMesh(f'{inner}', FaceMesh.Extract3DFacialLandmarks, 3)
+                    except Exception as e:
+                        print(f'failed on {inner}. error {e}')
