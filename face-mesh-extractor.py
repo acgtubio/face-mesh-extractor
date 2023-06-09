@@ -3,6 +3,7 @@ import mediapipe as mp
 import numpy as np
 import os
 import csv
+from ear_calculator import calculate_mar, calculate_ear
 
 
 def test(l, s):
@@ -19,6 +20,28 @@ class FaceMesh():
     def __init__(self, db=None):
         self.fileIndex = 0
         self.isNpArray = False
+
+    @staticmethod
+    def ExtractEarMar(face_mesh, is3d):
+        lm_coord = []
+        ear_mar = [] 
+        for facial_landmarks in face_mesh.multi_face_landmarks:
+            landmarks = facial_landmarks.landmark
+            for landmark in landmarks:
+                x = landmark.x
+                y = landmark.y
+                z = landmark.z
+                
+                if is3d:
+                    lm_coord.append([x, y, z])
+                else: 
+                    lm_coord.append([x, y])
+
+        calculate_ear(lm_coord, ear_mar)
+        calculate_mar(lm_coord, ear_mar)
+
+        return ear_mar
+
 
     @staticmethod
     def Extract3DFacialLandmarks(face_mesh, is3d):
@@ -138,6 +161,8 @@ class FaceMesh():
         TEXT_THICKNESS = 2
 
         mouth_landmarks = [13, 14, 312, 317, 82, 87, 178, 402, 311,           81,                                   88,         95,               183,     42,     78,     318, 310, 324, 415     , 308,               ]
+        right_eye_landmarks = [33, 246, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7]
+        left_eye_landmarks = [362, 382, 381, 380, 374, 373, 390, 249, 466, 388, 387, 386, 385, 384, 398]
         exclude =         [13, 14, 312, 317, 82, 87, 178, 402, 303, 271, 311, 81, 41, 74, 40, 185, 146, 91, 90, 77, 88, 89, 96, 95, 76, 184, 191, 183, 80, 42, 61, 78, 62, 318, 310, 324, 415, 407, 391, 308, 375, 290, 292, 291, 306]
 
         cap = cv2.VideoCapture(0)
@@ -160,8 +185,11 @@ class FaceMesh():
                     landmarks = facial_landmarks.landmark
                     for i, landmark in enumerate(landmarks):
 
-                        if i not in mouth_landmarks:
+                        if i not in left_eye_landmarks and i not in right_eye_landmarks and i not in mouth_landmarks:
                             continue
+
+                        # if i != 263:
+                        #     continue
 
                         # if i in exclude:
                         #     continue
@@ -188,50 +216,51 @@ if __name__ == '__main__':
     fold_list = ['Fold1_part1', 'Fold1_part2', 'Fold2_part1', 'Fold2_part2', 'Fold3_part1', 'Fold3_part2', 'Fold4_part1', 'Fold4_part2', 'Fold5_part1', 'Fold5_part2']
 
     # Camera Test
-    # extractor.FaceMeshTest()
+    extractor = FaceMesh()
+    extractor.FaceMeshTest()
 
-    for label in annot:
-        class_name = 'alert' if label == '0' else 'drowsy'
-        extractor = FaceMesh()
+    # for label in annot:
+    #     class_name = 'alert' if label == '0' else 'drowsy'
+    #     extractor = FaceMesh()
 
-        for fold in fold_list:
-            f = f"/home/eyd/Documents/Coding/_DATASETS/UTA-RLDD/{fold}/"
-            folders = os.listdir(f)
+    #     for fold in fold_list:
+    #         f = f"/home/eyd/Documents/Coding/_DATASETS/UTA-RLDD/{fold}/"
+    #         folders = os.listdir(f)
 
-            for folder in folders:
-                f2 = f'{f}{folder}'
-                files = os.listdir(f2)
+    #         for folder in folders:
+    #             f2 = f'{f}{folder}'
+    #             files = os.listdir(f2)
 
-                for fil in files:
-                    file_name, file_ext = os.path.splitext(fil)
+    #             for fil in files:
+    #                 file_name, file_ext = os.path.splitext(fil)
 
-                    if file_name == annot:
-                        inner = f'{f2}/{annot}{file_ext}'
-                        print(inner)
-                        try:
-                            extractor.ExtractFaceMesh(f'{inner}', FaceMesh.Extract3DFacialLandmarks, 3, True, class_name)
-                        except Exception as e:
-                            print(f'failed on {inner}. error {e}')
+    #                 if file_name == annot:
+    #                     inner = f'{f2}/{annot}{file_ext}'
+    #                     print(inner)
+    #                     try:
+    #                         extractor.ExtractFaceMesh(f'{inner}', FaceMesh.Extract3DFacialLandmarks, 3, True, class_name)
+    #                     except Exception as e:
+    #                         print(f'failed on {inner}. error {e}')
 
-    for label in annot:
-        class_name = 'em/alert' if label == '0' else 'em/drowsy'
-        extractor = FaceMesh()
+    # for label in annot:
+    #     class_name = 'em/alert' if label == '0' else 'em/drowsy'
+    #     extractor = FaceMesh()
 
-        for fold in fold_list:
-            f = f"/home/eyd/Documents/Coding/_DATASETS/UTA-RLDD/{fold}/"
-            folders = os.listdir(f)
+    #     for fold in fold_list:
+    #         f = f"/home/eyd/Documents/Coding/_DATASETS/UTA-RLDD/{fold}/"
+    #         folders = os.listdir(f)
 
-            for folder in folders:
-                f2 = f'{f}{folder}'
-                files = os.listdir(f2)
+    #         for folder in folders:
+    #             f2 = f'{f}{folder}'
+    #             files = os.listdir(f2)
 
-                for fil in files:
-                    file_name, file_ext = os.path.splitext(fil)
+    #             for fil in files:
+    #                 file_name, file_ext = os.path.splitext(fil)
 
-                    if file_name == annot:
-                        inner = f'{f2}/{annot}{file_ext}'
-                        print(inner)
-                        try:
-                            extractor.ExtractFaceMesh(f'{inner}', FaceMesh.ExtractEyeAndMouthLandmarks, 3, True, class_name)
-                        except Exception as e:
-                            print(f'failed on {inner}. error {e}')
+    #                 if file_name == annot:
+    #                     inner = f'{f2}/{annot}{file_ext}'
+    #                     print(inner)
+    #                     try:
+    #                         extractor.ExtractFaceMesh(f'{inner}', FaceMesh.ExtractEyeAndMouthLandmarks, 3, True, class_name)
+    #                     except Exception as e:
+    #                         print(f'failed on {inner}. error {e}')
