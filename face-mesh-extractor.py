@@ -22,7 +22,7 @@ class FaceMesh():
         self.isNpArray = False
 
     @staticmethod
-    def ExtractEarMar(face_mesh, is3d):
+    def ExtractEarMar(face_mesh, is3d, dims):
         lm_coord = []
         ear_mar = [] 
         for facial_landmarks in face_mesh.multi_face_landmarks:
@@ -35,7 +35,7 @@ class FaceMesh():
                 if is3d:
                     lm_coord.append([x, y, z])
                 else: 
-                    lm_coord.append([x, y])
+                    lm_coord.append([x * dims['width'], y * dims['height']])
 
         calculate_ear(lm_coord, ear_mar)
         calculate_mar(lm_coord, ear_mar)
@@ -122,13 +122,18 @@ class FaceMesh():
                 break
             
             height, width, _ = image.shape
+            dims = {
+                'height': height,
+                'width': width
+            }
+            # print(dims)
             #print(height, width)
             rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
             result = face_mesh.process(rgb_image)
 
             if result.multi_face_landmarks:
-               coordinates.append(extractor(result, is3d))
+               coordinates.append(extractor(result, is3d, dims))
                 
 
             # cv2.imshow("Image", image)
@@ -216,31 +221,34 @@ if __name__ == '__main__':
     fold_list = ['Fold1_part1', 'Fold1_part2', 'Fold2_part1', 'Fold2_part2', 'Fold3_part1', 'Fold3_part2', 'Fold4_part1', 'Fold4_part2', 'Fold5_part1', 'Fold5_part2']
 
     # Camera Test
-    extractor = FaceMesh()
-    extractor.FaceMeshTest()
+    # extractor = FaceMesh()
+    # extractor.FaceMeshTest()
 
-    # for label in annot:
-    #     class_name = 'alert' if label == '0' else 'drowsy'
-    #     extractor = FaceMesh()
+    print('EXTRACTING EAR ====================================')
+    for label in annot:
+        class_name = 'ear2/alert' if label == '0' else 'ear2/drowsy'
+        extractor = FaceMesh()
 
-    #     for fold in fold_list:
-    #         f = f"/home/eyd/Documents/Coding/_DATASETS/UTA-RLDD/{fold}/"
-    #         folders = os.listdir(f)
+        for fold in fold_list:
+            f = f"/home/eyd/Documents/Coding/_DATASETS/UTA-RLDD/{fold}/"
+            folders = os.listdir(f)
 
-    #         for folder in folders:
-    #             f2 = f'{f}{folder}'
-    #             files = os.listdir(f2)
+            for folder in folders:
+                f2 = f'{f}{folder}'
+                files = os.listdir(f2)
 
-    #             for fil in files:
-    #                 file_name, file_ext = os.path.splitext(fil)
+                for fil in files:
+                    file_name, file_ext = os.path.splitext(fil)
 
-    #                 if file_name == annot:
-    #                     inner = f'{f2}/{annot}{file_ext}'
-    #                     print(inner)
-    #                     try:
-    #                         extractor.ExtractFaceMesh(f'{inner}', FaceMesh.Extract3DFacialLandmarks, 3, True, class_name)
-    #                     except Exception as e:
-    #                         print(f'failed on {inner}. error {e}')
+                    if file_name == label:
+                        inner = f'{f2}/{label}{file_ext}'
+                        print(inner)
+                        try:
+                            extractor.ExtractFaceMesh(f'{inner}', FaceMesh.ExtractEarMar, 3, False, class_name)
+                        except Exception as e:
+                            print(f'failed on {inner}. error {e}')
+
+    # print('EXTRACTING EYES AND MOUTH LANDMARKS ====================================')
 
     # for label in annot:
     #     class_name = 'em/alert' if label == '0' else 'em/drowsy'
@@ -257,8 +265,8 @@ if __name__ == '__main__':
     #             for fil in files:
     #                 file_name, file_ext = os.path.splitext(fil)
 
-    #                 if file_name == annot:
-    #                     inner = f'{f2}/{annot}{file_ext}'
+    #                 if file_name == label:
+    #                     inner = f'{f2}/{label}{file_ext}'
     #                     print(inner)
     #                     try:
     #                         extractor.ExtractFaceMesh(f'{inner}', FaceMesh.ExtractEyeAndMouthLandmarks, 3, True, class_name)
