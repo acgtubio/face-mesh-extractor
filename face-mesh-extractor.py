@@ -105,7 +105,7 @@ class FaceMesh():
     def CalculateEAR(landmarks):
         pass
 
-    def ExtractFaceMesh(self, file, extractor, num_splits, is3d, class_name):
+    def ExtractFaceMesh(self, file, extractor, num_splits, is3d, class_name, split_all_frames=False):
         mp_face_mesh = mp.solutions.face_mesh
         face_mesh = mp_face_mesh.FaceMesh()
         coordinates = []
@@ -141,10 +141,14 @@ class FaceMesh():
                 coordinates = []
                 break
 
-
-        num_frames = len(coordinates)
-        split_size = round(num_frames / num_splits)
+        
         split_list = []
+        num_frames = len(coordinates)
+
+        if (not split_all_frames):
+            split_size = round(num_frames / num_splits)
+        else:
+            split_size = 1
 
         for i in range(0, num_frames, split_size):
             split_list.append(coordinates[i:i+split_size])
@@ -244,7 +248,7 @@ if __name__ == '__main__':
                         inner = f'{f2}/{label}{file_ext}'
                         print(inner)
                         try:
-                            extractor.ExtractFaceMesh(f'{inner}', FaceMesh.ExtractEarMar, 3, False, class_name)
+                            extractor.ExtractFaceMesh(f'{inner}', FaceMesh.ExtractEarMar, 3, False, class_name, split_all_frames=True)
                         except Exception as e:
                             print(f'failed on {inner}. error {e}')
 
